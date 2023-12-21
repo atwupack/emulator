@@ -2,56 +2,42 @@ use crate::mem::{Memory, RAM};
 use std::collections::BTreeMap;
 use std::rc::Rc;
 use smallvec::SmallVec;
-
-struct Instruction {
-    op_code: u8,
-    exec: fn(SmallVec<[u8;5]>, &mut CPU) -> (),
-    data_size: u16,
-}
-
-impl Instruction {
-    fn new(op_code: u8, data_size: u16, exec: fn(SmallVec<[u8; 5]>, &mut CPU) -> ()) -> Self {
-        Self {
-            op_code,
-            exec,
-            data_size,
-        }
-    }
-}
+use crate::instruction::{Instruction, lda_immediate};
 
 #[derive(Default)]
 struct InstructionSet {
-    instructions: BTreeMap<u8, Rc<Instruction>>,
+    instructions: BTreeMap<u8, Rc<dyn Instruction>>,
 }
 
 impl InstructionSet {
 
-    fn get_ins(&self, op_code: u8) -> Option<Rc<Instruction>> {
+    fn get_ins(&self, op_code: u8) -> Option<Rc<dyn Instruction>> {
         self.instructions.get(&op_code).map(Rc::clone)
     }
 
-    fn add_ins(&mut self, ins: Instruction) {
-        self.instructions.insert(ins.op_code, Rc::new(ins));
+    fn add_ins(&mut self, op_code: u8, ins: impl Instruction) {
+        self.instructions.insert(op_code, Rc::new(ins));
     }
 
     fn init(&mut self) {
-        self.add_ins(Instruction::new(INS_LDA_IM, 1, |data, cpu| {
-            let value = data[0];
-            cpu.a = value;
-            cpu.lda_set_status();
-        }));
-        self.add_ins(Instruction::new(INS_LDA_ZP, 1, |data, cpu| {
-            let zero_page_address = data[0];
-            cpu.a = cpu.read_byte(zero_page_address);
-            cpu.lda_set_status();
-        }));
-        self.add_ins(Instruction::new(INS_LDA_ZPX, 1, |data, cpu| {
-            let mut zero_page_address = data[0];
-            zero_page_address += cpu.x;
-            cpu.cycles += 1;
-            cpu.a = cpu.read_byte(zero_page_address);
-            cpu.lda_set_status();
-        }));
+        self.add_ins(INS_LDA_IM, lda_immediate);
+        // self.add_ins(Instruction::new(INS_LDA_IM, 1, |data, cpu| {
+        //     let value = data[0];
+        //     cpu.a = value;
+        //     cpu.lda_set_status();
+        // }));
+        // self.add_ins(Instruction::new(INS_LDA_ZP, 1, |data, cpu| {
+        //     let zero_page_address = data[0];
+        //     cpu.a = cpu.read_byte(zero_page_address);
+        //     cpu.lda_set_status();
+        // }));
+        // self.add_ins(Instruction::new(INS_LDA_ZPX, 1, |data, cpu| {
+        //     let mut zero_page_address = data[0];
+        //     zero_page_address += cpu.x;
+        //     cpu.cycles += 1;
+        //     cpu.a = cpu.read_byte(zero_page_address);
+        //     cpu.lda_set_status();
+        // }));
 
     }
 }
@@ -143,11 +129,11 @@ impl CPU {
         self.n = (self.a & 0b10000000) > 0;
     }
 
-    fn get_instruction(&self, op_code: u8) -> Option<Rc<Instruction>> {
+    fn get_instruction(&self, op_code: u8) -> Option<Rc<dyn Instruction>> {
         self.is.get_ins(op_code)
     }
 
-    fn fetch_next_instruction(&mut self) -> Result<(Rc<Instruction>, SmallVec<[u8;5]>), u8> {
+    fn fetch_next_instruction(&mut self) -> Result<(Rc<dyn Instruction>, SmallVec<[u8;5]>), u8> {
         let op_code = self.fetch_next_byte();
         let ins = self.get_instruction(op_code);
         match ins {
