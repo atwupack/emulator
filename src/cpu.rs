@@ -3,14 +3,14 @@ use std::collections::BTreeMap;
 use std::rc::Rc;
 use smallvec::SmallVec;
 
-struct Instruction<const N: usize> {
+struct Instruction {
     op_code: u8,
-    exec: fn(SmallVec<[u8;5]>, &mut CPU<N>) -> (),
+    exec: fn(SmallVec<[u8;5]>, &mut CPU) -> (),
     data_size: u16,
 }
 
-impl<const N: usize> Instruction<N> {
-    fn new(op_code: u8, data_size: u16, exec: fn(SmallVec<[u8; 5]>, &mut CPU<N>) -> ()) -> Self {
+impl Instruction {
+    fn new(op_code: u8, data_size: u16, exec: fn(SmallVec<[u8; 5]>, &mut CPU) -> ()) -> Self {
         Self {
             op_code,
             exec,
@@ -20,17 +20,17 @@ impl<const N: usize> Instruction<N> {
 }
 
 #[derive(Default)]
-struct InstructionSet<const N: usize> {
-    instructions: BTreeMap<u8, Rc<Instruction<N>>>,
+struct InstructionSet {
+    instructions: BTreeMap<u8, Rc<Instruction>>,
 }
 
-impl<const N: usize> InstructionSet<N> {
+impl InstructionSet {
 
-    fn get_ins(&self, op_code: u8) -> Option<Rc<Instruction<N>>> {
+    fn get_ins(&self, op_code: u8) -> Option<Rc<Instruction>> {
         self.instructions.get(&op_code).map(Rc::clone)
     }
 
-    fn add_ins(&mut self, ins: Instruction<N>) {
+    fn add_ins(&mut self, ins: Instruction) {
         self.instructions.insert(ins.op_code, Rc::new(ins));
     }
 
@@ -60,12 +60,12 @@ pub const INS_LDA_IM: u8 = 0xA9;
 pub const INS_LDA_ZP: u8 = 0xA5;
 pub const INS_LDA_ZPX: u8 = 0xB5;
 
-#[derive(Default)]
-pub struct CPU<const N: usize> {
+
+pub struct CPU {
     pc: u16, // program counter
     sp: u16, // stack pointer
     // registers
-    a: u8,
+    pub a: u8,
     x: u8,
     y: u8,
     // status flags
@@ -77,36 +77,37 @@ pub struct CPU<const N: usize> {
     v: bool,
     n: bool,
 
-    is: InstructionSet<N>,
+    is: InstructionSet,
 
-    memory: RAM<N>,
+    memory: Box<dyn Memory>,
 
     cycles: usize,
 }
 
-impl<const N: usize> CPU<N> {
-    pub fn memory(&mut self) -> &mut RAM<N> {
-        &mut self.memory
-    }
+impl CPU {
 
-    pub fn reset(&mut self) {
-        self.pc = 0xFF00;
-        self.sp = 0x0100;
-        self.a = 0;
-        self.x = 0;
-        self.y = 0;
-        self.c = false;
-        self.z = false;
-        self.i = false;
-        self.d = false;
-        self.b = false;
-        self.v = false;
-        self.n = false;
+    pub fn new(mem: impl Memory + 'static) -> Self {
+        let mut is = InstructionSet::default();
+        is.init();
+        CPU {
+            pc: 0xFF00,
+            sp: 0x0100,
+            a: 0,
+            x: 0,
+            y: 0,
+            c: false,
+            z: false,
+            i: false,
+            d: false,
+            b: false,
+            v: false,
+            n: false,
 
-        self.memory.initialise();
-        self.is.init();
+            memory: Box::new(mem),
+            is,
 
-        self.cycles = 0;
+            cycles: 0,
+        }
     }
 
     fn fetch_next_bytes(&mut self, n: u16) -> SmallVec<[u8;5]> {
@@ -142,11 +143,11 @@ impl<const N: usize> CPU<N> {
         self.n = (self.a & 0b10000000) > 0;
     }
 
-    fn get_instruction(&self, op_code: u8) -> Option<Rc<Instruction<N>>> {
+    fn get_instruction(&self, op_code: u8) -> Option<Rc<Instruction>> {
         self.is.get_ins(op_code)
     }
 
-    fn fetch_next_instruction(&mut self) -> Result<(Rc<Instruction<N>>, SmallVec<[u8;5]>), u8> {
+    fn fetch_next_instruction(&mut self) -> Result<(Rc<Instruction>, SmallVec<[u8;5]>), u8> {
         let op_code = self.fetch_next_byte();
         let ins = self.get_instruction(op_code);
         match ins {
