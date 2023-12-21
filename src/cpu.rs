@@ -48,7 +48,7 @@ impl<const N: usize> InstructionSet<N> {
         self.add_ins(Instruction::new(INS_LDA_ZPX, 1, |data, cpu| {
             let mut zero_page_address = data[0];
             zero_page_address += cpu.x;
-            cpu.cycles -= 1;
+            cpu.cycles += 1;
             cpu.a = cpu.read_byte(zero_page_address);
             cpu.lda_set_status();
         }));
@@ -112,14 +112,14 @@ impl<const N: usize> CPU<N> {
     fn fetch_next_bytes(&mut self, n: u16) -> SmallVec<[u8;5]> {
         let data = self.memory.get_vec(self.pc, n).unwrap();
         self.pc += n;
-        self.cycles -= n as usize;
+        self.cycles += n as usize;
         data
     }
 
     pub fn fetch_next_byte(&mut self) -> u8 {
         let data = self.memory.get(self.pc).unwrap();
         self.pc += 1;
-        self.cycles -= 1;
+        self.cycles += 1;
         data
     }
 
@@ -127,13 +127,13 @@ impl<const N: usize> CPU<N> {
         let mut data = self.memory.get(self.pc).unwrap() as u16;
         data |= (self.memory.get(self.pc).unwrap() as u16) << 8;
         self.pc += 2;
-        self.cycles -= 2;
+        self.cycles += 2;
         data
     }
 
     fn read_byte(&mut self, address: u8) -> u8 {
         let data = self.memory.get(address as u16).unwrap();
-        self.cycles -= 1;
+        self.cycles += 1;
         data
     }
 
