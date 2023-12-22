@@ -10,8 +10,8 @@ const MAX_MEM: usize = 1024 * 64;
 fn main() {
 
     let mut mem : RAM<MAX_MEM> = RAM::default();
-    mem.set(0xFF00,INS_LDA_IM);
-    mem.set(0xFF01,132);
+    let _ = mem.set(0xFF00,INS_LDA_IM);
+    let _ = mem.set(0xFF01,132);
 
     let mut cpu = CPU::new(mem);
     println!("{}",cpu.a);

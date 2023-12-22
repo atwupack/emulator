@@ -1,4 +1,3 @@
-use smallvec::SmallVec;
 use crate::mem::MemoryError::IndexOutOfBounds;
 
 #[derive(Debug)]
@@ -9,7 +8,6 @@ pub enum MemoryError {
 pub trait Memory {
     fn get(&self, index: u16) -> Result<u8, MemoryError>;
 
-    fn get_vec(&self, index: u16, count: u16) -> Result<SmallVec<[u8; 5]>, MemoryError>;
     fn set(&mut self, index: u16, value: u8) -> Result<(), MemoryError>;
 }
 
@@ -21,15 +19,6 @@ impl<const N: usize> Memory for RAM<N> {
     fn get(&self, index: u16) -> Result<u8, MemoryError> {
         if (index as usize) < N  {
             Ok(self.data[index as usize])
-        } else {
-            Err(IndexOutOfBounds)
-        }
-    }
-
-    fn get_vec(&self, index: u16, count: u16) -> Result<SmallVec<[u8; 5]>, MemoryError> {
-        if (index as usize + count as usize - 1) < N  {
-            let data = &self.data[index as usize .. (index + count) as usize];
-            Ok(SmallVec::from_slice(data))
         } else {
             Err(IndexOutOfBounds)
         }
