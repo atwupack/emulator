@@ -1,8 +1,7 @@
-use crate::mem::{Memory, RAM};
+use crate::mem::Memory;
 use std::collections::BTreeMap;
 use std::rc::Rc;
-use smallvec::SmallVec;
-use crate::instruction::{Instruction, lda_immediate};
+use crate::instruction::{Accumulator, Immediate, Instruction, lda_immediate, lda_zero_page, lda_zero_page_x, ZeroPage, ZeroPageX};
 
 #[derive(Default)]
 struct InstructionSet {
@@ -15,30 +14,14 @@ impl InstructionSet {
         self.instructions.get(&op_code).map(Rc::clone)
     }
 
-    fn add_ins(&mut self, op_code: u8, ins: impl Instruction) {
-        self.instructions.insert(op_code, Rc::new(ins));
+    fn add_ins(&mut self, op_code: u8, ins: Rc<dyn Instruction>) {
+        self.instructions.insert(op_code, ins);
     }
 
     fn init(&mut self) {
-        self.add_ins(INS_LDA_IM, lda_immediate);
-        // self.add_ins(Instruction::new(INS_LDA_IM, 1, |data, cpu| {
-        //     let value = data[0];
-        //     cpu.a = value;
-        //     cpu.lda_set_status();
-        // }));
-        // self.add_ins(Instruction::new(INS_LDA_ZP, 1, |data, cpu| {
-        //     let zero_page_address = data[0];
-        //     cpu.a = cpu.read_byte(zero_page_address);
-        //     cpu.lda_set_status();
-        // }));
-        // self.add_ins(Instruction::new(INS_LDA_ZPX, 1, |data, cpu| {
-        //     let mut zero_page_address = data[0];
-        //     zero_page_address += cpu.x;
-        //     cpu.cycles += 1;
-        //     cpu.a = cpu.read_byte(zero_page_address);
-        //     cpu.lda_set_status();
-        // }));
-
+        self.add_ins(INS_LDA_IM, Rc::new(lda_immediate as fn(Immediate) -> Accumulator) );
+        self.add_ins(INS_LDA_ZP, Rc::new(lda_zero_page as fn(ZeroPage) -> Accumulator) );
+        self.add_ins(INS_LDA_ZPX, Rc::new(lda_zero_page_x as fn(ZeroPageX) -> Accumulator) );
     }
 }
 
@@ -52,16 +35,16 @@ pub struct CPU {
     sp: u16, // stack pointer
     // registers
     pub a: u8,
-    x: u8,
+    pub x: u8,
     y: u8,
     // status flags
     c: bool,
-    z: bool,
+    pub z: bool,
     i: bool,
     d: bool,
     b: bool,
     v: bool,
-    n: bool,
+    pub n: bool,
 
     is: InstructionSet,
 
@@ -96,13 +79,6 @@ impl CPU {
         }
     }
 
-    fn fetch_next_bytes(&mut self, n: u16) -> SmallVec<[u8;5]> {
-        let data = self.memory.get_vec(self.pc, n).unwrap();
-        self.pc += n;
-        self.cycles += n as usize;
-        data
-    }
-
     pub fn fetch_next_byte(&mut self) -> u8 {
         let data = self.memory.get(self.pc).unwrap();
         self.pc += 1;
@@ -110,36 +86,22 @@ impl CPU {
         data
     }
 
-    fn fetch_next_word(&mut self) -> u16 {
-        let mut data = self.memory.get(self.pc).unwrap() as u16;
-        data |= (self.memory.get(self.pc).unwrap() as u16) << 8;
-        self.pc += 2;
-        self.cycles += 2;
-        data
-    }
-
-    fn read_byte(&mut self, address: u8) -> u8 {
+    pub fn read_byte(&mut self, address: u8) -> u8 {
         let data = self.memory.get(address as u16).unwrap();
         self.cycles += 1;
         data
-    }
-
-    fn lda_set_status(&mut self) {
-        self.z = self.a == 0;
-        self.n = (self.a & 0b10000000) > 0;
     }
 
     fn get_instruction(&self, op_code: u8) -> Option<Rc<dyn Instruction>> {
         self.is.get_ins(op_code)
     }
 
-    fn fetch_next_instruction(&mut self) -> Result<(Rc<dyn Instruction>, SmallVec<[u8;5]>), u8> {
+    fn fetch_next_instruction(&mut self) -> Result<Rc<dyn Instruction>, u8> {
         let op_code = self.fetch_next_byte();
         let ins = self.get_instruction(op_code);
         match ins {
             Some(i) => {
-                let data = self.fetch_next_bytes(i.data_size);
-                Ok((i, data))
+                Ok(i)
             }
             None => {
                 Err(op_code)
@@ -153,8 +115,8 @@ impl CPU {
         while self.cycles < target_cycles {
             let ins = self.fetch_next_instruction();
             match ins {
-                Ok((i, d)) => {
-                    (i.exec)(d, self);
+                Ok(i) => {
+                    i.execute(self);
                 }
                 Err(op_code) => {
                     println!("Instruction not handled {}", op_code)

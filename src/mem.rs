@@ -1,4 +1,3 @@
-use std::ops::Index;
 use smallvec::SmallVec;
 use crate::mem::MemoryError::IndexOutOfBounds;
 
@@ -52,12 +51,6 @@ impl<const N: usize> Default for RAM<N> {
         RAM {
             data: [0; N]
         }
-    }
-}
-
-impl<const N: usize> RAM<N> {
-    pub fn initialise(&mut self) {
-        self.data.fill(0);
     }
 }
 

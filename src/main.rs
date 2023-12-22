@@ -1,4 +1,4 @@
-use crate::cpu::{CPU, INS_LDA_ZP};
+use crate::cpu::{CPU, INS_LDA_IM};
 use crate::mem::{Memory, RAM};
 
 mod cpu;
@@ -10,11 +10,12 @@ const MAX_MEM: usize = 1024 * 64;
 fn main() {
 
     let mut mem : RAM<MAX_MEM> = RAM::default();
-    mem.set(0xFF00,INS_LDA_ZP);
-    mem.set(0xFF01,0x42);
-    mem.set(0x42,0x84);
+    mem.set(0xFF00,INS_LDA_IM);
+    mem.set(0xFF01,132);
 
     let mut cpu = CPU::new(mem);
-    cpu.execute(3);
+    println!("{}",cpu.a);
+    cpu.execute(2);
+    println!("{}",cpu.a);
     println!("done");
 }
