@@ -1,4 +1,4 @@
-use crate::mem::Memory;
+use crate::memory::Memory;
 use std::collections::BTreeMap;
 use std::rc::Rc;
 use crate::instruction::{Accumulator, Immediate, Instruction, lda_immediate, lda_zero_page, lda_zero_page_x, ZeroPage, ZeroPageX};

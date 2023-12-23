@@ -1,8 +1,8 @@
 use crate::cpu::{CPU, INS_LDA_IM};
-use crate::mem::{Memory, RAM};
+use crate::memory::{Memory, RAM};
 
 mod cpu;
-mod mem;
+mod memory;
 mod instruction;
 
 const MAX_MEM: usize = 1024 * 64;
