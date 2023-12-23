@@ -17,13 +17,9 @@ impl InstructionInput for ZeroPageX {
         let mut zp = cpu.fetch_next_byte();
         zp += cpu.x;
         let value = cpu.read_byte(zp);
-        ZeroPageX {
-            value,
-        }
+        ZeroPageX { value }
     }
 }
-
-
 
 pub struct ZeroPage {
     value: u8,
@@ -33,12 +29,9 @@ impl InstructionInput for ZeroPage {
     fn new(cpu: &mut CPU) -> Self {
         let zp = cpu.fetch_next_byte();
         let value = cpu.read_byte(zp);
-        ZeroPage {
-            value,
-        }
+        ZeroPage { value }
     }
 }
-
 
 pub struct Immediate {
     value: u8,
@@ -47,9 +40,7 @@ pub struct Immediate {
 impl InstructionInput for Immediate {
     fn new(cpu: &mut CPU) -> Self {
         let value = cpu.fetch_next_byte();
-        Immediate {
-            value,
-        }
+        Immediate { value }
     }
 }
 
@@ -59,9 +50,7 @@ pub struct Accumulator {
 
 impl InstructionInput for Accumulator {
     fn new(cpu: &mut CPU) -> Self {
-        Accumulator {
-            value: cpu.a,
-        }
+        Accumulator { value: cpu.a }
     }
 }
 
@@ -77,8 +66,7 @@ pub trait Instruction {
     fn execute(&self, cpu: &mut CPU);
 }
 
-impl<I1: InstructionInput, O1: InstructionOutput> Instruction for fn(I1) -> O1
-{
+impl<I1: InstructionInput, O1: InstructionOutput> Instruction for fn(I1) -> O1 {
     fn execute(&self, cpu: &mut CPU) {
         let param = I1::new(cpu);
         let output = self(param);
@@ -87,19 +75,13 @@ impl<I1: InstructionInput, O1: InstructionOutput> Instruction for fn(I1) -> O1
 }
 
 pub fn lda_immediate(value: Immediate) -> Accumulator {
-    Accumulator {
-        value: value.value,
-    }
+    Accumulator { value: value.value }
 }
 
 pub fn lda_zero_page(value: ZeroPage) -> Accumulator {
-    Accumulator {
-        value: value.value,
-    }
+    Accumulator { value: value.value }
 }
 
 pub fn lda_zero_page_x(value: ZeroPageX) -> Accumulator {
-    Accumulator {
-        value: value.value,
-    }
+    Accumulator { value: value.value }
 }

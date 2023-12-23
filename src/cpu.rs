@@ -1,7 +1,10 @@
+use crate::instruction::{
+    lda_immediate, lda_zero_page, lda_zero_page_x, Accumulator, Immediate, Instruction, ZeroPage,
+    ZeroPageX,
+};
 use crate::memory::Memory;
 use std::collections::BTreeMap;
 use std::rc::Rc;
-use crate::instruction::{Accumulator, Immediate, Instruction, lda_immediate, lda_zero_page, lda_zero_page_x, ZeroPage, ZeroPageX};
 
 #[derive(Default)]
 struct InstructionSet {
@@ -9,7 +12,6 @@ struct InstructionSet {
 }
 
 impl InstructionSet {
-
     fn get_ins(&self, op_code: u8) -> Option<Rc<dyn Instruction>> {
         self.instructions.get(&op_code).map(Rc::clone)
     }
@@ -19,16 +21,24 @@ impl InstructionSet {
     }
 
     fn init(&mut self) {
-        self.add_ins(INS_LDA_IM, Rc::new(lda_immediate as fn(Immediate) -> Accumulator) );
-        self.add_ins(INS_LDA_ZP, Rc::new(lda_zero_page as fn(ZeroPage) -> Accumulator) );
-        self.add_ins(INS_LDA_ZPX, Rc::new(lda_zero_page_x as fn(ZeroPageX) -> Accumulator) );
+        self.add_ins(
+            INS_LDA_IM,
+            Rc::new(lda_immediate as fn(Immediate) -> Accumulator),
+        );
+        self.add_ins(
+            INS_LDA_ZP,
+            Rc::new(lda_zero_page as fn(ZeroPage) -> Accumulator),
+        );
+        self.add_ins(
+            INS_LDA_ZPX,
+            Rc::new(lda_zero_page_x as fn(ZeroPageX) -> Accumulator),
+        );
     }
 }
 
 pub const INS_LDA_IM: u8 = 0xA9;
 pub const INS_LDA_ZP: u8 = 0xA5;
 pub const INS_LDA_ZPX: u8 = 0xB5;
-
 
 pub struct CPU {
     pc: u16, // program counter
@@ -54,7 +64,6 @@ pub struct CPU {
 }
 
 impl CPU {
-
     pub fn new(mem: impl Memory + 'static) -> Self {
         let mut is = InstructionSet::default();
         is.init();
@@ -100,12 +109,8 @@ impl CPU {
         let op_code = self.fetch_next_byte();
         let ins = self.get_instruction(op_code);
         match ins {
-            Some(i) => {
-                Ok(i)
-            }
-            None => {
-                Err(op_code)
-            }
+            Some(i) => Ok(i),
+            None => Err(op_code),
         }
     }
 
