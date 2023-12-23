@@ -1,0 +1,3 @@
+= Test of 6502 emulator in Rust.
+
+Just a small project for playing around with Rust by programming a simple 6502 emulator.
