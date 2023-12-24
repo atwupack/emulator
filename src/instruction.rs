@@ -8,6 +8,19 @@ pub trait InstructionOutput {
     fn apply(&self, cpu: &mut CPU);
 }
 
+pub struct Absolute {
+    value: u8,
+}
+
+impl InstructionInput for Absolute {
+    fn new(cpu: &mut CPU) -> Self {
+        let mut addr = cpu.fetch_next_byte() as u16;
+        addr |= (cpu.fetch_next_byte() as u16) << 8;
+        let value = cpu.read_byte(addr);
+        Absolute { value }
+    }
+}
+
 pub struct ZeroPageX {
     value: u8,
 }
@@ -15,9 +28,22 @@ pub struct ZeroPageX {
 impl InstructionInput for ZeroPageX {
     fn new(cpu: &mut CPU) -> Self {
         let mut zp = cpu.fetch_next_byte();
-        zp += cpu.x;
-        let value = cpu.read_byte(zp);
+        zp = zp.wrapping_add(cpu.x);
+        let value = cpu.read_byte(zp as u16);
         ZeroPageX { value }
+    }
+}
+
+pub struct ZeroPageY {
+    value: u8,
+}
+
+impl InstructionInput for ZeroPageY {
+    fn new(cpu: &mut CPU) -> Self {
+        let mut zp = cpu.fetch_next_byte();
+        zp = zp.wrapping_add(cpu.y);
+        let value = cpu.read_byte(zp as u16);
+        ZeroPageY { value }
     }
 }
 
@@ -28,7 +54,7 @@ pub struct ZeroPage {
 impl InstructionInput for ZeroPage {
     fn new(cpu: &mut CPU) -> Self {
         let zp = cpu.fetch_next_byte();
-        let value = cpu.read_byte(zp);
+        let value = cpu.read_byte(zp as u16);
         ZeroPage { value }
     }
 }

@@ -46,7 +46,7 @@ pub struct CPU {
     // registers
     pub a: u8,
     pub x: u8,
-    y: u8,
+    pub y: u8,
     // status flags
     c: bool,
     pub z: bool,
@@ -95,8 +95,8 @@ impl CPU {
         data
     }
 
-    pub fn read_byte(&mut self, address: u8) -> u8 {
-        let data = self.memory.get(address as u16).unwrap();
+    pub fn read_byte(&mut self, address: u16) -> u8 {
+        let data = self.memory.get(address).unwrap();
         self.cycles += 1;
         data
     }
