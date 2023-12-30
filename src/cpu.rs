@@ -6,20 +6,19 @@ use crate::memory::Memory;
 use std::collections::BTreeMap;
 use std::rc::Rc;
 
-#[derive(Default)]
-struct InstructionSet {
-    instructions: BTreeMap<u8, Rc<dyn Instruction>>,
+struct InstructionSet<C: Cpu> {
+    instructions: BTreeMap<u8, Rc<dyn Instruction<C>>>,
 }
 
-impl InstructionSet {
-    fn get_ins(&self, op_code: u8) -> Option<Rc<dyn Instruction>> {
-        self.instructions.get(&op_code).map(Rc::clone)
+impl<C: Cpu> Default for InstructionSet<C> {
+    fn default() -> Self {
+        InstructionSet {
+            instructions: BTreeMap::new(),
+        }
     }
+}
 
-    fn add_ins(&mut self, op_code: u8, ins: Rc<dyn Instruction>) {
-        self.instructions.insert(op_code, ins);
-    }
-
+impl InstructionSet<Cpu6502> {
     fn init(&mut self) {
         self.add_ins(
             INS_LDA_IM,
@@ -36,11 +35,29 @@ impl InstructionSet {
     }
 }
 
+impl<C: Cpu> InstructionSet<C> {
+    fn get_ins(&self, op_code: u8) -> Option<Rc<dyn Instruction<C>>> {
+        self.instructions.get(&op_code).map(Rc::clone)
+    }
+
+    fn add_ins(&mut self, op_code: u8, ins: Rc<dyn Instruction<C>>) {
+        self.instructions.insert(op_code, ins);
+    }
+
+
+}
+
 pub const INS_LDA_IM: u8 = 0xA9;
 pub const INS_LDA_ZP: u8 = 0xA5;
 pub const INS_LDA_ZPX: u8 = 0xB5;
 
-pub struct CPU {
+pub trait Cpu {
+    type Registers;
+
+    fn regs(&mut self) -> &mut Self::Registers;
+}
+
+pub struct Registers6502 {
     pc: u16, // program counter
     sp: u16, // stack pointer
     // registers
@@ -55,19 +72,11 @@ pub struct CPU {
     b: bool,
     v: bool,
     pub n: bool,
-
-    is: InstructionSet,
-
-    memory: Box<dyn Memory>,
-
-    cycles: usize,
 }
 
-impl CPU {
-    pub fn new(mem: impl Memory + 'static) -> Self {
-        let mut is = InstructionSet::default();
-        is.init();
-        CPU {
+impl Default for Registers6502 {
+    fn default() -> Self {
+        Registers6502 {
             pc: 0xFF00,
             sp: 0x0100,
             a: 0,
@@ -80,6 +89,35 @@ impl CPU {
             b: false,
             v: false,
             n: false,
+        }
+    }
+}
+
+pub struct Cpu6502 {
+
+    pub(crate) regs: Registers6502,
+
+    is: InstructionSet<Cpu6502>,
+
+    memory: Box<dyn Memory>,
+
+    cycles: usize,
+}
+
+impl Cpu for Cpu6502 {
+    type Registers = Registers6502;
+
+    fn regs(&mut self) -> &mut Self::Registers {
+        todo!()
+    }
+}
+
+impl Cpu6502 {
+    pub fn new(mem: impl Memory + 'static) -> Self {
+        let mut is = InstructionSet::default();
+        is.init();
+        Cpu6502 {
+            regs: Registers6502::default(),
 
             memory: Box::new(mem),
             is,
@@ -89,8 +127,8 @@ impl CPU {
     }
 
     pub fn fetch_next_byte(&mut self) -> u8 {
-        let data = self.memory.get(self.pc).unwrap();
-        self.pc += 1;
+        let data = self.memory.get(self.regs.pc).unwrap();
+        self.regs.pc += 1;
         self.cycles += 1;
         data
     }
@@ -101,11 +139,11 @@ impl CPU {
         data
     }
 
-    fn get_instruction(&self, op_code: u8) -> Option<Rc<dyn Instruction>> {
+    fn get_instruction(&self, op_code: u8) -> Option<Rc<dyn Instruction<Cpu6502>>> {
         self.is.get_ins(op_code)
     }
 
-    fn fetch_next_instruction(&mut self) -> Result<Rc<dyn Instruction>, u8> {
+    fn fetch_next_instruction(&mut self) -> Result<Rc<dyn Instruction<Cpu6502>>, u8> {
         let op_code = self.fetch_next_byte();
         let ins = self.get_instruction(op_code);
         match ins {

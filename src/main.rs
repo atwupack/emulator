@@ -1,4 +1,4 @@
-use crate::cpu::{CPU, INS_LDA_IM};
+use crate::cpu::{Cpu6502, INS_LDA_IM};
 use crate::memory::{Memory, RAM};
 
 mod cpu;
@@ -12,9 +12,9 @@ fn main() {
     let _ = mem.set(0xFF00, INS_LDA_IM);
     let _ = mem.set(0xFF01, 132);
 
-    let mut cpu = CPU::new(mem);
-    println!("{}", cpu.a);
+    let mut cpu = Cpu6502::new(mem);
+    println!("{}", cpu.regs.a);
     cpu.execute(2);
-    println!("{}", cpu.a);
+    println!("{}", cpu.regs.a);
     println!("done");
 }
