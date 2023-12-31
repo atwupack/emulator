@@ -18,7 +18,7 @@ impl<C: Cpu> Default for InstructionSet<C> {
     }
 }
 
-impl InstructionSet<Cpu6502> {
+impl InstructionSet<Mos6502> {
     fn init(&mut self) {
         self.add_ins(
             INS_LDA_IM,
@@ -93,18 +93,18 @@ impl Default for Registers6502 {
     }
 }
 
-pub struct Cpu6502 {
+pub struct Mos6502 {
 
     pub(crate) regs: Registers6502,
 
-    is: InstructionSet<Cpu6502>,
+    is: InstructionSet<Mos6502>,
 
     memory: Box<dyn Memory>,
 
     cycles: usize,
 }
 
-impl Cpu for Cpu6502 {
+impl Cpu for Mos6502 {
     type Registers = Registers6502;
 
     fn regs(&mut self) -> &mut Self::Registers {
@@ -112,11 +112,11 @@ impl Cpu for Cpu6502 {
     }
 }
 
-impl Cpu6502 {
+impl Mos6502 {
     pub fn new(mem: impl Memory + 'static) -> Self {
         let mut is = InstructionSet::default();
         is.init();
-        Cpu6502 {
+        Mos6502 {
             regs: Registers6502::default(),
 
             memory: Box::new(mem),
@@ -139,11 +139,11 @@ impl Cpu6502 {
         data
     }
 
-    fn get_instruction(&self, op_code: u8) -> Option<Rc<dyn Instruction<Cpu6502>>> {
+    fn get_instruction(&self, op_code: u8) -> Option<Rc<dyn Instruction<Mos6502>>> {
         self.is.get_ins(op_code)
     }
 
-    fn fetch_next_instruction(&mut self) -> Result<Rc<dyn Instruction<Cpu6502>>, u8> {
+    fn fetch_next_instruction(&mut self) -> Result<Rc<dyn Instruction<Mos6502>>, u8> {
         let op_code = self.fetch_next_byte();
         let ins = self.get_instruction(op_code);
         match ins {
