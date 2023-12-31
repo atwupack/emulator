@@ -1,5 +1,5 @@
-use crate::cpu::{Mos6502, INS_LDA_IM};
 use crate::memory::{Memory, RAM};
+use crate::mos6502::{Mos6502, INS_LDA_IM};
 
 mod cpu;
 mod instruction;
@@ -14,8 +14,8 @@ fn main() {
     let _ = mem.set(0xFF01, 132);
 
     let mut cpu = Mos6502::new(mem);
-    println!("{}", cpu.regs.a);
+    // println!("{}", cpu.a);
     cpu.execute(2);
-    println!("{}", cpu.regs.a);
+    // println!("{}", cpu.a);
     println!("done");
 }
