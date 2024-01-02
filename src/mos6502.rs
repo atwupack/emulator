@@ -9,10 +9,12 @@ use std::rc::Rc;
 pub const INS_LDA_IM: u8 = 0xA9;
 pub const INS_LDA_ZP: u8 = 0xA5;
 pub const INS_LDA_ZPX: u8 = 0xB5;
+pub const INS_PHA: u8 = 0x48;
+pub const INS_PLA: u8 = 0x68;
 
 pub struct Mos6502 {
     pc: u16, // program counter
-    sp: u16, // stack pointer
+    sp: u8, // stack pointer
     // registers
     a: u8,
     x: u8,
@@ -41,7 +43,7 @@ impl Mos6502 {
         is.init();
         Mos6502 {
             pc: 0xFF00,
-            sp: 0x0100,
+            sp: 0xFF,
             a: 0,
             x: 0,
             y: 0,
@@ -71,6 +73,11 @@ impl Mos6502 {
         let data = self.memory.get(address).unwrap();
         self.cycles += 1;
         data
+    }
+
+    pub fn write_byte(&mut self, address: u16, value: u8) {
+        self.memory.set(address, value).expect("write failed");
+        self.cycles += 1;
     }
 
     fn get_instruction(&self, op_code: u8) -> Option<Rc<dyn Instruction<Mos6502>>> {
@@ -117,6 +124,8 @@ impl crate::cpu::InstructionSet<Mos6502> {
             INS_LDA_ZPX,
             Rc::new(lda_zero_page_x as fn(ZeroPageX) -> Accumulator),
         );
+        self.add_ins(INS_PHA, Rc::new( pha as fn(Accumulator) -> StackValue));
+        self.add_ins(INS_PLA, Rc::new(pla as fn(StackValue) -> Accumulator));
     }
 }
 
@@ -186,4 +195,29 @@ pub fn lda_zero_page(value: ZeroPage) -> Accumulator {
 
 pub fn lda_zero_page_x(value: ZeroPageX) -> Accumulator {
     Accumulator(value.0)
+}
+
+struct StackValue(u8);
+impl InstructionOutput<Mos6502> for StackValue {
+    fn apply(&self, cpu: &mut Mos6502) {
+        let stack_addr = cpu.sp as u16;
+        cpu.write_byte(stack_addr, self.0);
+        cpu.sp = cpu.sp.wrapping_sub(1);
+    }
+}
+
+impl InstructionInput<Mos6502> for StackValue {
+    fn new(cpu: &mut Mos6502) -> Self {
+        let stack_addr = cpu.sp as u16;
+        cpu.sp = cpu.sp.wrapping_add(1);
+        StackValue(cpu.read_byte(stack_addr))
+    }
+}
+
+fn pha(acc: Accumulator) -> StackValue {
+    StackValue(acc.0)
+}
+
+fn pla(stack: StackValue) -> Accumulator {
+    Accumulator(stack.0)
 }
