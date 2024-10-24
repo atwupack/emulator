@@ -2,6 +2,8 @@
 
 Just a small project for playing around with Rust by programming a simple 6502 emulator.
 
+image::https://github.com/atwupack/emulator/actions/workflows/rust.yml/badge.svg[Rust]
+
 == Some Resources
 
 * https://www.masswerk.at/6502/6502_instruction_set.html[6502 Instruction Set]
