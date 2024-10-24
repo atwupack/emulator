@@ -1,3 +1,11 @@
 = Test of 6502 emulator in Rust.
 
 Just a small project for playing around with Rust by programming a simple 6502 emulator.
+
+== Some Resources
+
+* https://www.masswerk.at/6502/6502_instruction_set.html[6502 Instruction Set]
+* http://www.6502.org/tutorials/6502opcodes.html[NMOS 6502 Opcodes]
+* http://www.6502.org/users/obelisk/6502/instructions.html[The Instruction Set]
+* ...
+
